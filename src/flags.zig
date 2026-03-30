@@ -1,4 +1,6 @@
+const build_options = @import("build_options");
 const std = @import("std");
+const fs = std.fs;
 const mem = std.mem;
 const fmt = std.fmt;
 const meta = std.meta;
@@ -46,6 +48,7 @@ const parsers = .{
 };
 const main_params = clap.parseParamsComptime(
     \\ -h, --help                   Print this help message and exit
+    \\ -v, --version                Print the version and exit
     \\ -c, --config <STRING>        Specify the configuration file path
     \\ <SUBCOMMANDS>                e.g. list, apply
     \\
@@ -82,6 +85,14 @@ pub fn parse(allocator: mem.Allocator) !?kwim.RunOption {
 
     if (res.args.help != 0) {
         try clap.helpToFile(.stdout(), clap.Help, &main_params, .{});
+        posix.exit(0);
+    }
+    if (res.args.version != 0) {
+        var stdout_buffer: [16]u8 = undefined;
+        var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+        const stdout = &stdout_writer.interface;
+        try stdout.writeAll(build_options.version++"\n");
+        try stdout.flush();
         posix.exit(0);
     }
 

@@ -1,6 +1,10 @@
 const std = @import("std");
+const mem = std.mem;
 
 const wayland = @import("wayland");
+
+const manifest = @import("build.zig.zon");
+const version = manifest.version;
 
 // Although this function looks imperative, it does not perform the build
 // directly and instead it mutates the build graph (`b`) that will be then
@@ -60,6 +64,32 @@ pub fn build(b: *std.Build) void {
     config_mod.addImport("kwim", kwim_mod);
     kwim_mod.addImport("config", config_mod);
 
+    const full_version = blk: {
+        if (b.option([]const u8, "version-string", "Override `kwm -version` output.")) |version_override| {
+            break :blk version_override;
+        } else if (mem.endsWith(u8, version, "-dev")) {
+            var ret: u8 = undefined;
+
+            const git_describe_long = b.runAllowFail(
+                &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
+                &ret,
+                .Ignore,
+            ) catch break :blk version;
+
+            var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
+            _ = it.next().?; // previous tag
+            const commit_count = it.next().?;
+            const commit_hash = it.next().?;
+            std.debug.assert(it.next() == null);
+            std.debug.assert(commit_hash[0] == 'g');
+
+            // Follow semantic versioning, e.g. 0.2.0-dev.42+d1cf95b
+            break :blk b.fmt(version ++ ".{s}+{s}", .{ commit_count, commit_hash[1..] });
+        } else {
+            break :blk version;
+        }
+    };
+
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
     // to the module defined above, it's sometimes preferable to split business
@@ -110,6 +140,10 @@ pub fn build(b: *std.Build) void {
 
     exe.root_module.linkSystemLibrary("wayland-client", .{});
     exe.root_module.linkSystemLibrary("xkbcommon", .{});
+
+    const options = b.addOptions();
+    options.addOption([]const u8, "version", full_version);
+    exe.root_module.addOptions("build_options", options);
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
