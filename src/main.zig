@@ -32,16 +32,13 @@ pub fn main() !void {
     const option = try flags.parse(allocator) orelse kwim.RunOption {
         .apply = blk: {
             var path_buffer: [256]u8 = undefined;
-            const config_path = (
+            const config_path = try (
                 if (posix.getenv("XDG_CONFIG_HOME")) |config_home|
                     fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
                 else if (posix.getenv("HOME")) |home|
                     fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
                 else return error.GetConfigHomeFailed
-            ) catch |err| {
-                log.err("format config path failed: {}", .{ err });
-                return err;
-            };
+            );
             break :blk try Config.load(allocator, config_path);
         }
     };
