@@ -103,6 +103,12 @@ pub fn build(b: *std.Build) void {
         b.installFile("completions/kwim.bash", "share/bash-completion/completions/kwim");
     }
 
+    const man1 = b.addInstallFile(b.path("doc/kwim.1"), "share/man/man1/kwim.1");
+    const man5 = b.addInstallFile(b.path("doc/kwim.5"), "share/man/man5/kwim.5");
+
+    b.getInstallStep().dependOn(&man1.step);
+    b.getInstallStep().dependOn(&man5.step);
+
     const zsh_completion = b.option(
         bool,
         "zsh-completion",
