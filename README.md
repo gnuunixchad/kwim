@@ -1,6 +1,8 @@
 # Description
 
-A input manager separated from [kwm], based on [River].
+kwim is an input manager for [River] separated from [kwm], implementing the
+river-input-management-v1 protocol and/or related protocols in order to
+configure input devices independent of window manager.
 
 # Dependencies
 
@@ -11,7 +13,7 @@ A input manager separated from [kwm], based on [River].
 
 Requires zig 0.15.x.
 
-```zig
+```sh
 zig build -Doptimize=ReleaseSafe
 ```
 
@@ -19,14 +21,22 @@ zig build -Doptimize=ReleaseSafe
 
 # Usage
 
-Directly run `kwim`, will search the same configuration file of [kwm] by default.
-And you could use `-c` or `--config` to specify custom configuration file path.
-For configuration details, could see [config.def.zon](https://github.com/kewuaa/kwm/blob/3860d2c0d7f772c030cf5b88c4d00d8d9b6c531a/config.def.zon#L1030).
+Without any subcommands and options, kwim reads input rules from the same
+configuration file used by kwm.
+
+You can also use `-c,--config` to specify the custom configuration file path.
+
+See `kwim(1)` man page for complete documentation.
 
 ## subcommands
 
 - `kwim list`: list device information, `kwim list -h` to see details.
 - `kwim apply`: apply a single rule for device, `kwim apply -h` to see defails.
 
+# Configuration
+
+See `kwim(5)` man page or kwm's [config.def.zon] for all possible settings.
+
 [kwm]: https://github.com/kewuaa/kwm.git
 [river]: https://codeberg.org/river/river
+[config.def.zon]: https://github.com/kewuaa/kwm/blob/3860d2c0d7f772c030cf5b88c4d00d8d9b6c531a/config.def.zon#L1030
