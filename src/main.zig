@@ -1,3 +1,4 @@
+const builtins = @import("builtin");
 const std = @import("std");
 const fs = std.fs;
 const fmt = std.fmt;
@@ -24,9 +25,20 @@ const Globals = struct {
 
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
-    defer if (gpa.deinit() != .ok) @panic("memory leak");
-    const allocator = gpa.allocator();
+    var gpa = switch (comptime builtins.mode) {
+        .Debug => std.heap.GeneralPurposeAllocator(.{}) {},
+        else => void{},
+    };
+    defer switch (comptime builtins.mode) {
+        .Debug => if (gpa.deinit() != .ok) @panic("memory leak"),
+        else => {}
+    };
+
+    const allocator = switch (comptime builtins.mode) {
+        .Debug => gpa.allocator(),
+        else => std.heap.smp_allocator,
+    };
+
     kwim.init_allocator(&allocator);
 
     const option = try flags.parse(allocator) orelse kwim.RunOption {
