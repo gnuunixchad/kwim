@@ -9,7 +9,7 @@ _kwim() {
     local common_options="-h --help --name --regex --match-null"
     local input_device_options="--repeat-info --scroll-factor"
     local libinput_options="--send-event-modes --tap --drag --drag-lock --tap-button-map --three-finger-drag --calibration-matrix --accel-profile --accel-speed --natural-scroll --left-handed --click-method --clickfinger-button-map --middle-button-emulation --scroll-method --scroll-button --scroll-button-lock --disable-while-typing --disable-while-trackpointing --rotation-angle"
-    local xkb_options="--numlock --capslock --layout --keymap-file --keymap-options"
+    local xkb_options="--numlock --capslock --layout --keymap-file --keymap-rules --keymap-model --keymap-layout --keymap-variant --keymap-options"
 
     local bool_states="enabled disabled"
     local send_event_modes="enabled disabled disabled_on_external_mouse"
@@ -67,7 +67,7 @@ _kwim() {
             COMPREPLY=( $(compgen -W "$capslock_states" -- "$cur") )
             return 0
             ;;
-        --calibration-matrix|--repeat-info|--keymap-file|--keymap-options|--accel-speed|--scroll-factor|--rotation-angle|--layout)
+        --calibration-matrix|--repeat-info|--keymap-file|--keymap-rules|--keymap-model|--keymap-layout|--keymap-variant|--keymap-options|--accel-speed|--scroll-factor|--rotation-angle|--layout)
             return 0
             ;;
     esac

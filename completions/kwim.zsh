@@ -56,6 +56,10 @@ _kwim() {
         '--capslock'
         '--layout'
         '--keymap-file'
+        '--keymap-rules'
+        '--keymap-model'
+        '--keymap-layout'
+        '--keymap-variant'
         '--keymap-options'
     )
 
@@ -96,7 +100,7 @@ _kwim() {
             _files
             return
             ;;
-        --name|--repeat-info|--calibration-matrix|--accel-speed|--scroll-factor|--rotation-angle|--layout|--keymap-options)
+        --name|--repeat-info|--calibration-matrix|--accel-speed|--scroll-factor|--rotation-angle|--layout|--keymap-rules|--keymap-model|--keymap-layout|--keymap-variant|--keymap-options)
             return
             ;;
     esac
