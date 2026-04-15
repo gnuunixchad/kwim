@@ -416,7 +416,11 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !Confi
         \\ --capslock <CAPSLOCK_STATE>      Set capslock state (enabled, disabled)
         \\ --layout <KEYBOARD_LAYOUT>       Keyboard layout name, index or name
         \\ --keymap-file <STRING>           Keymap file (e.g. <file-path>@<format>)
-        \\ --keymap-options <STRING>        Keymap options (e.g. rules=...,model=...,layout=...,variant=...,options=...)
+        \\ --keymap-rules <STRING>          Rules in keymap options
+        \\ --keymap-model <STRING>          Model in keymap options
+        \\ --keymap-layout <STRING>         Layout in keymap options
+        \\ --keymap-variant <STRING>        Variant in keymap options
+        \\ --keymap-options <STRING>        Options in keymap options
         \\
     );
 
@@ -503,19 +507,10 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !Confi
     }
 
     if (rule.keymap == null) {
-        if (res.args.@"keymap-options") |str| {
-            var split = mem.splitAny(u8, str, ",");
-            rule.keymap = .{ .options = .{} };
-            outer: while (split.next()) |item| {
-                var s = mem.splitAny(u8, mem.trim(u8, item, " "), "=");
-                const name = mem.trim(u8, s.next().?, " ");
-                const value = mem.trim(u8, s.next().?, " ");
-                inline for (@typeInfo(@TypeOf(rule.keymap.?.options)).@"struct".fields) |field_info| {
-                    if (mem.eql(u8, field_info.name, name)) {
-                        @field(rule.keymap.?.options, field_info.name) = try allocator.dupe(u8, value);
-                        continue :outer;
-                    }
-                }
+        inline for (@typeInfo(@TypeOf(rule.keymap.?.options)).@"struct".fields) |field| {
+            if (rule.keymap == null) rule.keymap = .{ .options = .{} };
+            if (@field(res.args, "keymap-"++field.name)) |str| {
+                @field(rule.keymap.?.options, field.name) = try allocator.dupe(u8, str);
             }
         }
     }
