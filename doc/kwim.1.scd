@@ -27,13 +27,13 @@ configuration file used by _kwm_.
 
 # OPTIONS
 
-*-h,-help*
+*-h,--help*
 	Print a help message and exit.
 
-*-v,-version*
+*-v,--version*
 	Print the version and exit.
 
-*-c,-config*
+*-c,--config*
 	Specify the configuration file path.
 
 # SUBCOMMANDS
