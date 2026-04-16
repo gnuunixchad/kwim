@@ -37,6 +37,11 @@ See `kwim(1)` man page for complete documentation.
 
 See `kwim(5)` man page or kwm's [config.def.zon] for all possible settings.
 
+## License
+
+The source code of kwim is released under the [GPL-3.0].
+
 [kwm]: https://github.com/kewuaa/kwm.git
 [river]: https://codeberg.org/river/river
 [config.def.zon]: https://github.com/kewuaa/kwm/blob/3860d2c0d7f772c030cf5b88c4d00d8d9b6c531a/config.def.zon#L1030
+[GPL-3.0]: ./LICENSE
