@@ -37,35 +37,42 @@ pub fn build(b: *std.Build) void {
     scanner.generate("river_libinput_config_v1", 1);
     scanner.generate("river_xkb_config_v1", 1);
 
+    const full_version = blk: {
+        if (b.option([]const u8, "version-string", "Override `kwm -version` output.")) |version_override| {
+            break :blk version_override;
+        } else if (mem.endsWith(u8, version, "-dev")) {
+            var ret: u8 = undefined;
+
+            const git_describe_long = b.runAllowFail(
+                &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
+                &ret,
+                .Ignore,
+            ) catch break :blk version;
+
+            var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
+            _ = it.next().?; // previous tag
+            const commit_count = it.next().?;
+            const commit_hash = it.next().?;
+            std.debug.assert(it.next() == null);
+            std.debug.assert(commit_hash[0] == 'g');
+
+            // Follow semantic versioning, e.g. 0.2.0-dev.42+d1cf95b
+            break :blk b.fmt(version ++ ".{s}+{s}", .{ commit_count, commit_hash[1..] });
+        } else {
+            break :blk version;
+        }
+    };
+
+    const config = b.option([]const u8, "config", "config path");
+    const kwm_config = b.option([]const u8, "kwm-config", "kwm config path");
+    const bash_completion = b.option(bool, "bash-completion", "Set to true to install bash completion for kwim. Defaults to true.") orelse true;
+    const zsh_completion = b.option(bool, "zsh-completion", "Set to true to install zsh completion for kwim. Defaults to true.") orelse true;
+
     const wayland_mod = b.createModule(.{ .root_source_file = scanner.result });
     const xkbcommon_mod = b.dependency("xkbcommon", .{}).module("xkbcommon");
     const mvzr_mod = b.dependency("mvzr", .{}).module("mvzr");
     const clap_mod = b.dependency("clap", .{}).module("clap");
 
-    const config_mod = b.createModule(.{
-        .target = target,
-        .optimize = optimize,
-        .root_source_file = b.path("src/config.zig"),
-        .imports = &.{
-            .{ .name = "wayland", .module = wayland_mod },
-            .{ .name = "mvzr", .module = mvzr_mod },
-        }
-    });
-    const kwim_mod = b.createModule(.{
-        .target = target,
-        .optimize = optimize,
-        .root_source_file = b.path("src/kwim.zig"),
-        .imports = &.{
-            .{ .name = "wayland", .module = wayland_mod },
-            .{ .name = "xkbcommon", .module = xkbcommon_mod },
-        }
-    });
-
-    config_mod.addImport("kwim", kwim_mod);
-    kwim_mod.addImport("config", config_mod);
-
-    const config = b.option([]const u8, "config", "config path");
-    const kwm_config = b.option([]const u8, "kwm_config", "kwm config path");
     var default_config_mod: ?*std.Build.Module = null;
     if (config) |path| {
         default_config_mod = b.createModule(.{
@@ -95,65 +102,32 @@ pub fn build(b: *std.Build) void {
             }
         });
     }
+
+    const config_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .root_source_file = b.path("src/config.zig"),
+        .imports = &.{
+            .{ .name = "wayland", .module = wayland_mod },
+            .{ .name = "mvzr", .module = mvzr_mod },
+        }
+    });
+
+    const kwim_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .root_source_file = b.path("src/kwim.zig"),
+        .imports = &.{
+            .{ .name = "wayland", .module = wayland_mod },
+            .{ .name = "xkbcommon", .module = xkbcommon_mod },
+        }
+    });
+
+    config_mod.addImport("kwim", kwim_mod);
+    kwim_mod.addImport("config", config_mod);
     if (default_config_mod) |mod| {
         kwim_mod.addImport("default_config", mod);
     }
-
-    const kwim_options = b.addOptions();
-    kwim_options.addOption(bool, "has_default_config", default_config_mod != null);
-    kwim_mod.addOptions("build_options", kwim_options);
-
-    const bash_completion = b.option(
-        bool,
-        "bash-completion",
-        "Set to true to install bash completion for kwim. Defaults to true.",
-    ) orelse true;
-
-    if (bash_completion) {
-        b.installFile("completions/kwim.bash", "share/bash-completion/completions/kwim");
-    }
-
-    const man1 = b.addInstallFile(b.path("doc/kwim.1"), "share/man/man1/kwim.1");
-    const man5 = b.addInstallFile(b.path("doc/kwim.5"), "share/man/man5/kwim.5");
-
-    b.getInstallStep().dependOn(&man1.step);
-    b.getInstallStep().dependOn(&man5.step);
-
-    const zsh_completion = b.option(
-        bool,
-        "zsh-completion",
-        "Set to true to install zsh completion for kwim. Defaults to true.",
-    ) orelse true;
-
-    if (zsh_completion) {
-        b.installFile("completions/kwim.zsh", "share/zsh/site-functions/_kwim");
-    }
-
-    const full_version = blk: {
-        if (b.option([]const u8, "version-string", "Override `kwm -version` output.")) |version_override| {
-            break :blk version_override;
-        } else if (mem.endsWith(u8, version, "-dev")) {
-            var ret: u8 = undefined;
-
-            const git_describe_long = b.runAllowFail(
-                &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
-                &ret,
-                .Ignore,
-            ) catch break :blk version;
-
-            var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
-            _ = it.next().?; // previous tag
-            const commit_count = it.next().?;
-            const commit_hash = it.next().?;
-            std.debug.assert(it.next() == null);
-            std.debug.assert(commit_hash[0] == 'g');
-
-            // Follow semantic versioning, e.g. 0.2.0-dev.42+d1cf95b
-            break :blk b.fmt(version ++ ".{s}+{s}", .{ commit_count, commit_hash[1..] });
-        } else {
-            break :blk version;
-        }
-    };
 
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
@@ -202,9 +176,12 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
-
     exe.root_module.linkSystemLibrary("wayland-client", .{});
     exe.root_module.linkSystemLibrary("xkbcommon", .{});
+
+    const kwim_options = b.addOptions();
+    kwim_options.addOption(bool, "has_default_config", default_config_mod != null);
+    kwim_mod.addOptions("build_options", kwim_options);
 
     const options = b.addOptions();
     options.addOption([]const u8, "version", full_version);
@@ -215,6 +192,15 @@ pub fn build(b: *std.Build) void {
     // step). By default the install prefix is `zig-out/` but can be overridden
     // by passing `--prefix` or `-p`.
     b.installArtifact(exe);
+
+    b.installFile("doc/kwim.1", "share/man/man1/kwim.1");
+    b.installFile("doc/kwim.5", "share/man/man5/kwim.5");
+    if (bash_completion) {
+        b.installFile("completions/kwim.bash", "share/bash-completion/completions/kwim");
+    }
+    if (zsh_completion) {
+        b.installFile("completions/kwim.zsh", "share/zsh/site-functions/_kwim");
+    }
 
     // This creates a top level step. Top level steps have a name and can be
     // invoked by name when running `zig build` (e.g. `zig build run`).
