@@ -64,9 +64,17 @@ pub fn build(b: *std.Build) void {
     config_mod.addImport("kwim", kwim_mod);
     kwim_mod.addImport("config", config_mod);
 
-    const kwm_config = b.option([]const u8, "kwm_config", "kwm config");
-    if (kwm_config) |path| {
-        const default_config_mod = b.createModule(.{
+    const config = b.option([]const u8, "config", "config path");
+    const kwm_config = b.option([]const u8, "kwm_config", "kwm config path");
+    var default_config_mod: ?*std.Build.Module = null;
+    if (config) |path| {
+        default_config_mod = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .root_source_file = b.path(path)
+        });
+    } else if (kwm_config) |path| {
+        default_config_mod = b.createModule(.{
             .target = target,
             .optimize = optimize,
             .root_source_file = blk: {
@@ -86,11 +94,13 @@ pub fn build(b: *std.Build) void {
                 break :blk load_default_config_run.addOutputFileArg("default_config.zon");
             }
         });
-        kwim_mod.addImport("default_config", default_config_mod);
+    }
+    if (default_config_mod) |mod| {
+        kwim_mod.addImport("default_config", mod);
     }
 
     const kwim_options = b.addOptions();
-    kwim_options.addOption(bool, "has_default_config", kwm_config != null);
+    kwim_options.addOption(bool, "has_default_config", default_config_mod != null);
     kwim_mod.addOptions("build_options", kwim_options);
 
     const bash_completion = b.option(
