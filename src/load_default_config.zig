@@ -40,13 +40,18 @@ pub fn main() !void {
 
     var save = false;
     while (input_interface.takeDelimiterInclusive('\n')) |line| {
-        if (mem.indexOf(u8, line, "@if(kewuaa=super_hansome)") != null) {
+        if (mem.indexOf(u8, line, "@if(kwim)") != null) {
             save = true;
+            continue;
+        } else if (mem.indexOf(u8, line, "@endif") != null) {
+            save = false;
         }
         if (save) {
             try output_interface.writeAll(line);
         }
     } else |err| if (err != error.EndOfStream) return err;
+
+    try output_interface.writeAll("}\n");
 
     try output_interface.flush();
 }
