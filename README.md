@@ -17,6 +17,10 @@ Requires zig 0.15.x.
 zig build -Doptimize=ReleaseSafe
 ```
 
+- `-Dconfig`: specify config path as compile-time config
+- `-Dkwm-config`: specify kwm config path as compile-time config
+- `-Dbash-completion`: if to install bash completion file (defaults to `true`)
+- `-Dzsh-completion`: if to install zsh completion file (defaults to `true`)
 - `--prefix`: specify the path to install files
 
 # Usage
