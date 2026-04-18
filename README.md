@@ -4,12 +4,12 @@ kwim is an input manager for [River] separated from [kwm], implementing the
 river-input-management-v1 protocol and/or related protocols in order to
 configure input devices independent of window manager.
 
-# Dependencies
+## Dependencies
 
 - wayland (libwayland-client)
 - xkbcommon
 
-# Build
+## Build
 
 Requires zig 0.15.x.
 
@@ -21,9 +21,20 @@ zig build -Doptimize=ReleaseSafe
 - `-Dkwm-config`: specify kwm config path as compile-time config
 - `-Dbash-completion`: if to install bash completion file (defaults to `true`)
 - `-Dzsh-completion`: if to install zsh completion file (defaults to `true`)
+
+## Installation
+
+<a href="https://repology.org/project/kwim/versions">
+  <img align="right" width="192" src="https://repology.org/badge/vertical-allrepos/kwim.svg">
+</a>
+
+```sh
+zig build install -Doptimize=ReleaseSafe
+```
+
 - `--prefix`: specify the path to install files
 
-# Usage
+## Usage
 
 Without any subcommands and options, kwim reads input rules from the same
 configuration file used by kwm.
@@ -32,12 +43,12 @@ You can also use `-c,--config` to specify the custom configuration file path.
 
 See `kwim(1)` man page for complete documentation.
 
-## subcommands
+### subcommands
 
 - `kwim list`: list device information, `kwim list -h` to see details.
 - `kwim apply`: apply a single rule for device, `kwim apply -h` to see defails.
 
-# Configuration
+## Configuration
 
 See `kwim(5)` man page or kwm's [config.def.zon] for all possible settings.
 
