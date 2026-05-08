@@ -47,7 +47,10 @@ configuration.
     //          .disabled_on_external_mouse
     //      tap: .enabled or .disabled
     //      drag: .enabled or .disabled
-    //      drag_lock: .enabled or .disabled
+    //      drag_lock:
+    //          .disabled
+    //          .enabled_timeout
+    //          .enabled_sticky
     //      tap_button_map: .lrm or .lmr
     //      three_finger_drag:
     //          .disabled
