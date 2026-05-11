@@ -84,7 +84,7 @@ configuration file used by _kwm_.
 	Set tap-and-drag state (enabled, disabled)
 
 *--drag-lock* _DRAG\_LOCK\_STATE_
-	Set tap-and-drag lock state (enabled, disabled)
+	Set tap-and-drag lock state (enabled\_timeout, enabled\_sticky, disabled)
 
 *--tap-button-map* _TAP\_BUTTON\_MAP_
 	Set tap button map (left\_right\_middle, left\_middle\_right)

@@ -12,6 +12,7 @@ _kwim() {
     local xkb_options="--numlock --capslock --layout --keymap-file --keymap-rules --keymap-model --keymap-layout --keymap-variant --keymap-options"
 
     local bool_states="enabled disabled"
+    local drag_lock_states="enabled_timeout enabled_sticky disabled"
     local send_event_modes="enabled disabled disabled_on_external_mouse"
     local tap_button_maps="left_right_middle left_middle_right"
     local accel_profiles="flat adaptive custom"
@@ -35,8 +36,12 @@ _kwim() {
             COMPREPLY=( $(compgen -W "$send_event_modes" -- "$cur") )
             return 0
             ;;
-        --tap|--drag|--drag-lock|--three-finger-drag|--natural-scroll|--left-handed|--middle-button-emulation|--scroll-button-lock|--disable-while-typing|--disable-while-trackpointing)
+        --tap|--drag|--three-finger-drag|--natural-scroll|--left-handed|--middle-button-emulation|--scroll-button-lock|--disable-while-typing|--disable-while-trackpointing)
             COMPREPLY=( $(compgen -W "$bool_states" -- "$cur") )
+            return 0
+            ;;
+        --drag-lock)
+            COMPREPLY=( $(compgen -W "$drag_lock_states" -- "$cur") )
             return 0
             ;;
         --tap-button-map|--clickfinger-button-map)

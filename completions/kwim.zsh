@@ -68,8 +68,12 @@ _kwim() {
             compadd enabled disabled disabled_on_external_mouse
             return
             ;;
-        --tap|--drag|--drag-lock|--three-finger-drag|--natural-scroll|--left-handed|--middle-button-emulation|--scroll-button-lock|--disable-while-typing|--disable-while-trackpointing)
+        --tap|--drag|--three-finger-drag|--natural-scroll|--left-handed|--middle-button-emulation|--scroll-button-lock|--disable-while-typing|--disable-while-trackpointing)
             compadd enabled disabled
+            return
+            ;;
+        --drag-lock)
+            compadd enabled_timeout enabled_sticky disabled
             return
             ;;
         --tap-button-map|--clickfinger-button-map)
