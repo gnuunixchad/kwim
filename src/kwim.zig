@@ -6,7 +6,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const types = @import("kwim/types.zig");
 const Context = @import("kwim/context.zig");
@@ -30,10 +30,10 @@ pub const DeviceType = enum {
 };
 pub const ListOption = struct {
     device_type: DeviceType,
-    pattern: ?Config.Pattern = null,
+    pattern: ?config.Pattern = null,
 };
 pub const RunOption = union(enum) {
-    apply: Config,
+    apply: config.Config,
     list: ListOption,
 };
 
@@ -46,9 +46,9 @@ pub fn run(wl_display: *wl.Display, option: RunOption) !void {
     try dispatch_once(wl_display);
 
     switch (option) {
-        .apply => |config| {
-            log.debug("apply config: {any}", .{ config });
-            ctx.apply_config(&config);
+        .apply => |cfg| {
+            log.debug("apply config: {any}", .{ cfg });
+            ctx.apply_config(&cfg);
         },
         .list => |list_option| switch (list_option.device_type) {
             .@"input-device" => try ctx.list_input_devices(list_option.pattern),

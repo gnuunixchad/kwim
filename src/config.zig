@@ -14,12 +14,14 @@ pub const LibinputDeviceRule = rule.LibinputDeviceRule;
 pub const XkbKeyboardRule = rule.XkbKeyboardRule;
 
 
-input_device_rules: ?[]const InputDeviceRule = null,
-libinput_device_rules: ?[]const LibinputDeviceRule = null,
-xkb_keyboard_rules: ?[]const XkbKeyboardRule = null,
+pub const Config = struct {
+    input_device_rules: ?[]const InputDeviceRule = null,
+    libinput_device_rules: ?[]const LibinputDeviceRule = null,
+    xkb_keyboard_rules: ?[]const XkbKeyboardRule = null,
+};
 
 
-pub fn load(allocator: mem.Allocator, path: []const u8) !Self {
+pub fn load(gpa: mem.Allocator, path: []const u8) !Config {
     const file = fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
         log.warn("Failed to open `{s}`: {}", .{ path, err });
         return .{};
@@ -28,8 +30,8 @@ pub fn load(allocator: mem.Allocator, path: []const u8) !Self {
 
     const stat = try file.stat();
 
-    var buffer = try allocator.alloc(u8, stat.size+1);
-    defer allocator.free(buffer);
+    var buffer = try gpa.alloc(u8, stat.size+1);
+    defer gpa.free(buffer);
 
     buffer[stat.size] = 0;
 
@@ -39,8 +41,8 @@ pub fn load(allocator: mem.Allocator, path: []const u8) !Self {
     try reader.readSliceAll(buffer[0..stat.size]);
 
     return try zon.parse.fromSlice(
-        Self,
-        allocator,
+        Config,
+        gpa,
         buffer[0..stat.size:0],
         null,
         .{ .ignore_unknown_fields = true },
@@ -48,6 +50,6 @@ pub fn load(allocator: mem.Allocator, path: []const u8) !Self {
 }
 
 
-pub inline fn free(allocator: mem.Allocator, config: Self) void {
-    zon.parse.free(allocator, config);
+pub inline fn free(gpa: mem.Allocator, config: Config) void {
+    zon.parse.free(gpa, config);
 }

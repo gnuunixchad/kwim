@@ -12,7 +12,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const Context = @import("context.zig");
 const InputDevice = @import("input_device.zig");
@@ -93,7 +93,7 @@ pub fn destroy(self: *Self) void {
 }
 
 
-pub fn apply_rules(self: *Self, rules: []const Config.XkbKeyboardRule) void {
+pub fn apply_rules(self: *Self, rules: []const config.XkbKeyboardRule) void {
     log.debug("<{*}> apply rules", .{ self });
 
     for (rules) |rule| {
@@ -105,7 +105,7 @@ pub fn apply_rules(self: *Self, rules: []const Config.XkbKeyboardRule) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const Config.XkbKeyboardRule) void {
+fn apply_rule(self: *Self, rule: *const config.XkbKeyboardRule) void {
     if (rule.numlock) |state| {
         if (self.numlock != state) self.set_numlock(state);
     }

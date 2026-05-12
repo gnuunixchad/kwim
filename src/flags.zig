@@ -12,7 +12,7 @@ const wayland = @import("wayland");
 const river = wayland.client.river;
 
 const kwim = @import("kwim");
-const Config = @import("config");
+const config = @import("config");
 
 
 const parsers = .{
@@ -113,7 +113,7 @@ pub fn parse(allocator: mem.Allocator) !?kwim.RunOption {
                         fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
                     else return error.GetConfigHomeFailed
                 );
-            break :blk try Config.load(allocator, config_path);
+            break :blk try config.load(allocator, config_path);
         },
     };
 }
@@ -155,7 +155,7 @@ fn parse_list(allocator: mem.Allocator, it: *process.ArgIterator) !kwim.ListOpti
 }
 
 
-fn parse_list_pattern(allocator: mem.Allocator, it: *process.ArgIterator) !?Config.Pattern {
+fn parse_list_pattern(allocator: mem.Allocator, it: *process.ArgIterator) !?config.Pattern {
     const params = subcommand_params;
 
     var diag = clap.Diagnostic{};
@@ -180,7 +180,7 @@ fn parse_list_pattern(allocator: mem.Allocator, it: *process.ArgIterator) !?Conf
         posix.exit(0);
     }
 
-    var pattern: ?Config.Pattern = null;
+    var pattern: ?config.Pattern = null;
     errdefer if (pattern) |p| allocator.free(p.str);
 
     if (res.args.name) |name| {
@@ -201,14 +201,14 @@ fn parse_list_pattern(allocator: mem.Allocator, it: *process.ArgIterator) !?Conf
 }
 
 
-fn parse_apply(allocator: mem.Allocator, it: *process.ArgIterator) !Config {
+fn parse_apply(allocator: mem.Allocator, it: *process.ArgIterator) !config.Config {
     const params = comptime clap.parseParamsComptime(
         \\ -h, --help       Print this help message and exit
         \\ <DEVICE_TYPE>    Device type (e.g. input-device, libinput-device, xkb-keyboard)
         \\
     );
 
-    var config = Config{};
+    var cfg = config.Config{};
 
     var diag = clap.Diagnostic{};
     var res = clap.parseEx(
@@ -238,37 +238,37 @@ fn parse_apply(allocator: mem.Allocator, it: *process.ArgIterator) !Config {
                 const rule = try parse_input_device(allocator, it);
                 if (all_null(rule)) return error.MissingInputDeviceRule;
 
-                var rules = try allocator.alloc(Config.InputDeviceRule, 1);
+                var rules = try allocator.alloc(config.InputDeviceRule, 1);
                 errdefer allocator.free(rules);
                 rules[0] = rule;
-                config.input_device_rules = rules;
+                cfg.input_device_rules = rules;
             },
             .@"libinput-device" => {
                 const rule = try parse_libinput_device(allocator, it);
                 if (all_null(rule)) return error.MissingLibinputDeviceRule;
 
-                var rules = try allocator.alloc(Config.LibinputDeviceRule, 1);
+                var rules = try allocator.alloc(config.LibinputDeviceRule, 1);
                 errdefer allocator.free(rules);
                 rules[0] = rule;
-                config.libinput_device_rules = rules;
+                cfg.libinput_device_rules = rules;
             },
             .@"xkb-keyboard" => {
                 const rule = try parse_xkb_keyboard(allocator, it);
                 if (all_null(rule)) return error.MissingXkbKeyboardRule;
 
-                var rules = try allocator.alloc(Config.XkbKeyboardRule, 1);
+                var rules = try allocator.alloc(config.XkbKeyboardRule, 1);
                 errdefer allocator.free(rules);
                 rules[0] = rule;
-                config.xkb_keyboard_rules = rules;
+                cfg.xkb_keyboard_rules = rules;
             },
         }
     }
 
-    return config;
+    return cfg;
 }
 
 
-fn parse_input_device(allocator: mem.Allocator, it: *process.ArgIterator) !Config.InputDeviceRule {
+fn parse_input_device(allocator: mem.Allocator, it: *process.ArgIterator) !config.InputDeviceRule {
     const params = subcommand_params ++ comptime clap.parseParamsComptime(
         \\ --repeat-info <REPEAT_INFO>      Keyboard repeat info (e.g. 50,300)
         \\ --scroll-factor <SCROLL_FACTOR>  Pointer scroll factor
@@ -296,7 +296,7 @@ fn parse_input_device(allocator: mem.Allocator, it: *process.ArgIterator) !Confi
         posix.exit(0);
     }
 
-    var rule = Config.InputDeviceRule{};
+    var rule = config.InputDeviceRule{};
     errdefer if (rule.name) |name| allocator.free(name.str);
 
     if (res.args.name) |name| {
@@ -326,7 +326,7 @@ fn parse_input_device(allocator: mem.Allocator, it: *process.ArgIterator) !Confi
 }
 
 
-fn parse_libinput_device(allocator: mem.Allocator, it: *process.ArgIterator) !Config.LibinputDeviceRule {
+fn parse_libinput_device(allocator: mem.Allocator, it: *process.ArgIterator) !config.LibinputDeviceRule {
     const params = subcommand_params ++ comptime clap.parseParamsComptime(
         \\ --send-event-modes <SEND_EVENT_MODE_STATE>       Set send events mode (enabled, disabled, disabled_on_external_mouse)
         \\ --tap <TAP_STATE>                                Set tap to click state (enabled, disabled)
@@ -372,7 +372,7 @@ fn parse_libinput_device(allocator: mem.Allocator, it: *process.ArgIterator) !Co
         posix.exit(0);
     }
 
-    var rule = Config.LibinputDeviceRule{};
+    var rule = config.LibinputDeviceRule{};
     errdefer if (rule.name) |name| allocator.free(name.str);
 
     if (res.args.name) |name| {
@@ -459,7 +459,7 @@ fn parse_libinput_device(allocator: mem.Allocator, it: *process.ArgIterator) !Co
 }
 
 
-fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !Config.XkbKeyboardRule {
+fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !config.XkbKeyboardRule {
     const params = subcommand_params ++ comptime clap.parseParamsComptime(
         \\ --numlock <NUMLOCK_STATE>        Set numlock state (enabled, disabled)
         \\ --capslock <CAPSLOCK_STATE>      Set capslock state (enabled, disabled)
@@ -494,7 +494,7 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !Confi
         posix.exit(0);
     }
 
-    var rule = Config.XkbKeyboardRule{};
+    var rule = config.XkbKeyboardRule{};
     errdefer {
         if (rule.name) |name| allocator.free(name.str);
         if (rule.layout) |layout| {

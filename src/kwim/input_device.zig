@@ -8,7 +8,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const Context = @import("context.zig");
 
@@ -59,7 +59,7 @@ pub fn destroy(self: *Self) void {
 }
 
 
-pub fn apply_rules(self: *Self, rules: []const Config.InputDeviceRule) void {
+pub fn apply_rules(self: *Self, rules: []const config.InputDeviceRule) void {
     log.debug("<{*}> apply rules", .{ self });
 
     for (rules) |rule| {
@@ -71,7 +71,7 @@ pub fn apply_rules(self: *Self, rules: []const Config.InputDeviceRule) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const Config.InputDeviceRule) void {
+fn apply_rule(self: *Self, rule: *const config.InputDeviceRule) void {
     switch (self.type) {
         .keyboard => {
             if (rule.repeat_info) |repeat_info| {

@@ -10,7 +10,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const InputDevice = @import("input_device.zig");
 const LibinputDevice = @import("libinput_device.zig");
@@ -108,15 +108,15 @@ pub inline fn get() *Self {
 }
 
 
-pub fn apply_config(self: *Self, config: *const Config) void {
+pub fn apply_config(self: *Self, cfg: *const config.Config) void {
     log.debug("apply config", .{});
 
-    var input_device_rules = config.input_device_rules;
-    var libinput_device_rules = config.libinput_device_rules;
-    var xkb_keyboard_rules = config.xkb_keyboard_rules;
+    var input_device_rules = cfg.input_device_rules;
+    var libinput_device_rules = cfg.libinput_device_rules;
+    var xkb_keyboard_rules = cfg.xkb_keyboard_rules;
 
     if (comptime build_options.has_default_config) {
-        const default_config: Config = @import("default_config");
+        const default_config: cfg = @import("default_config");
 
         input_device_rules = input_device_rules orelse default_config.input_device_rules;
         libinput_device_rules = libinput_device_rules orelse default_config.libinput_device_rules;
@@ -144,7 +144,7 @@ pub fn apply_config(self: *Self, config: *const Config) void {
 }
 
 
-pub fn list_input_devices(self: *Self, pattern: ?Config.Pattern) !void {
+pub fn list_input_devices(self: *Self, pattern: ?config.Pattern) !void {
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
     const stdout = &stdout_writer.interface;
@@ -167,7 +167,7 @@ pub fn list_input_devices(self: *Self, pattern: ?Config.Pattern) !void {
 }
 
 
-pub fn list_libinput_devices(self: *Self, pattern: ?Config.Pattern) !void {
+pub fn list_libinput_devices(self: *Self, pattern: ?config.Pattern) !void {
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
     const stdout = &stdout_writer.interface;
@@ -310,7 +310,7 @@ pub fn list_libinput_devices(self: *Self, pattern: ?Config.Pattern) !void {
 }
 
 
-pub fn list_xkb_keyboards(self: *Self, pattern: ?Config.Pattern) !void {
+pub fn list_xkb_keyboards(self: *Self, pattern: ?config.Pattern) !void {
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
     const stdout = &stdout_writer.interface;

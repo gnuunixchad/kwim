@@ -8,7 +8,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const types = @import("types.zig");
 const Context = @import("context.zig");
@@ -108,7 +108,7 @@ pub fn manage(self: *Self) void {
 }
 
 
-pub fn apply_rules(self: *Self, rules: []const Config.LibinputDeviceRule) void {
+pub fn apply_rules(self: *Self, rules: []const config.LibinputDeviceRule) void {
     log.debug("<{*}> apply rules", .{ self });
 
     for (rules) |rule| {
@@ -120,7 +120,7 @@ pub fn apply_rules(self: *Self, rules: []const Config.LibinputDeviceRule) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const Config.LibinputDeviceRule) void {
+fn apply_rule(self: *Self, rule: *const config.LibinputDeviceRule) void {
     var bits: u32 = undefined;
 
     bits = @bitCast(self.send_events_support);
