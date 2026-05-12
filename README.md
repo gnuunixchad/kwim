@@ -36,10 +36,15 @@ zig build install -Doptimize=ReleaseSafe
 
 ## Usage
 
-Without any subcommands and options, kwim reads input rules from the same
-configuration file used by kwm.
+Without any subcommands and options, kwim reads input rules from the following paths:
+- `$XDG_CONFIG_HOME/kwim/config.zon`
+- `$HOME/.config/kwim/config.zon`
 
 You can also use `-c,--config` to specify the custom configuration file path.
+
+[config.def.zon] is a example configuration file.
+`kwm` users could still put the input rules in `kwm`'s configuration file.
+`kwm` built with `-Dkwim` will pass the `kwm` configuration path to `kwim` by `-c`.
 
 See `kwim(1)` man page for complete documentation.
 
@@ -50,7 +55,7 @@ See `kwim(1)` man page for complete documentation.
 
 ## Configuration
 
-See `kwim(5)` man page or kwm's [config.def.zon] for all possible settings.
+See `kwim(5)` man page or [config.def.zon] for all possible settings.
 
 ## License
 
@@ -58,5 +63,5 @@ The source code of kwim is released under the [GPL-3.0].
 
 [kwm]: https://github.com/kewuaa/kwm.git
 [river]: https://codeberg.org/river/river
-[config.def.zon]: https://github.com/kewuaa/kwm/blob/3860d2c0d7f772c030cf5b88c4d00d8d9b6c531a/config.def.zon#L1030
+[config.def.zon]: ./config.def.zon
 [GPL-3.0]: ./LICENSE
