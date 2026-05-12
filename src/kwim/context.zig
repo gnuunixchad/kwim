@@ -116,7 +116,7 @@ pub fn apply_config(self: *Self, cfg: *const config.Config) void {
     var xkb_keyboard_rules = cfg.xkb_keyboard_rules;
 
     if (comptime build_options.has_default_config) {
-        const default_config: cfg = @import("default_config");
+        const default_config: config.Config = @import("default_config");
 
         input_device_rules = input_device_rules orelse default_config.input_device_rules;
         libinput_device_rules = libinput_device_rules orelse default_config.libinput_device_rules;
