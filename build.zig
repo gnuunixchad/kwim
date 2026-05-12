@@ -38,7 +38,7 @@ pub fn build(b: *std.Build) void {
     scanner.generate("river_xkb_config_v1", 1);
 
     const full_version = blk: {
-        if (b.option([]const u8, "version-string", "Override `kwm -version` output.")) |version_override| {
+        if (b.option([]const u8, "version-string", "Override `kwim -version` output.")) |version_override| {
             break :blk version_override;
         } else if (mem.endsWith(u8, version, "-dev")) {
             var ret: u8 = undefined;
