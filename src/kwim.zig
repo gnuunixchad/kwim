@@ -39,21 +39,23 @@ pub const RunOption = union(enum) {
     list: ListOption,
 };
 
+const ctx = Context.get();
+
 
 pub fn run(wl_display: *wl.Display, option: RunOption) !void {
-    const context = Context.get();
+    Context.check_init();
 
     try dispatch_once(wl_display);
 
     switch (option) {
         .apply => |config| {
             log.debug("apply config: {any}", .{ config });
-            context.apply_config(&config);
+            ctx.apply_config(&config);
         },
         .list => |list_option| switch (list_option.device_type) {
-            .@"input-device" => try context.list_input_devices(list_option.pattern),
-            .@"libinput-device" => try context.list_libinput_devices(list_option.pattern),
-            .@"xkb-keyboard" => try context.list_xkb_keyboards(list_option.pattern),
+            .@"input-device" => try ctx.list_input_devices(list_option.pattern),
+            .@"libinput-device" => try ctx.list_libinput_devices(list_option.pattern),
+            .@"xkb-keyboard" => try ctx.list_xkb_keyboards(list_option.pattern),
         }
     }
 

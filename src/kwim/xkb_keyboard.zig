@@ -45,6 +45,8 @@ pub const Keymap = union(enum) {
     },
 };
 
+const ctx = Context.get();
+
 
 link: wl.list.Link = undefined,
 
@@ -174,8 +176,6 @@ fn set_layout(self: *Self, layout: Layout) void {
 
 
 fn set_keymap(self: *Self, keymap: *const Keymap) !void {
-    const context = Context.get();
-
     const rwm_xkb_keymap = switch (keymap.*) {
         .file => |file| blk: {
             log.info("<{*}> set keymap file: `{s}` with format {s}", .{ self, file.path, @tagName(file.format) });
@@ -183,7 +183,7 @@ fn set_keymap(self: *Self, keymap: *const Keymap) !void {
             const fd = try posix.open(file.path, .{ .ACCMODE = .RDWR }, 0);
             defer posix.close(fd);
 
-            break :blk try context.rwm_xkb_config.createKeymap(fd, file.format);
+            break :blk try ctx.rwm_xkb_config.createKeymap(fd, file.format);
         },
         .options => |map| blk: {
             log.info(
@@ -235,7 +235,7 @@ fn set_keymap(self: *Self, keymap: *const Keymap) !void {
             const xkb_keymap_str = xkb_keymap.getAsString2(.text_v2, .{});
             _ = try posix.write(fd, mem.span(xkb_keymap_str orelse return error.GetXkbKeymapStringFailed));
 
-            break :blk try context.rwm_xkb_config.createKeymap(fd, .text_v2);
+            break :blk try ctx.rwm_xkb_config.createKeymap(fd, .text_v2);
         }
     };
     defer rwm_xkb_keymap.destroy();

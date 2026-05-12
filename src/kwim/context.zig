@@ -17,7 +17,8 @@ const LibinputDevice = @import("libinput_device.zig");
 const XkbKeyboard = @import("xkb_keyboard.zig");
 
 
-var ctx: ?Self = null;
+var ctx: Self = undefined;
+var inited: bool = false;
 
 
 rwm_input_manager: *river.InputManagerV1,
@@ -29,13 +30,18 @@ libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
 xkb_keyboards: wl.list.Head(XkbKeyboard, .link) = undefined,
 
 
+pub inline fn check_init() void {
+    if (!inited) @panic("context has not been initialized yet");
+}
+
+
 pub fn init(
     rwm_input_manager: *river.InputManagerV1,
     rwm_libinput_config: *river.LibinputConfigV1,
     rwm_xkb_config: *river.XkbConfigV1,
 ) void {
     // initialize once
-    if (ctx != null) return;
+    if (inited) return;
 
     log.debug("init context", .{});
 
@@ -45,57 +51,56 @@ pub fn init(
         .rwm_xkb_config = rwm_xkb_config,
     };
 
-    ctx.?.input_devices.init();
-    ctx.?.libinput_devices.init();
-    ctx.?.xkb_keyboards.init();
+    ctx.input_devices.init();
+    ctx.libinput_devices.init();
+    ctx.xkb_keyboards.init();
 
-    rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx.?);
-    rwm_libinput_config.setListener(*Self, rwm_libinput_config_listener, &ctx.?);
-    rwm_xkb_config.setListener(*Self, rwm_xkb_config_listener, &ctx.?);
+    rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx);
+    rwm_libinput_config.setListener(*Self, rwm_libinput_config_listener, &ctx);
+    rwm_xkb_config.setListener(*Self, rwm_xkb_config_listener, &ctx);
+
+    inited = true;
 }
 
 
 pub fn deinit() void {
-    std.debug.assert(ctx != null);
+    std.debug.assert(inited);
+    defer inited = false;
 
     log.debug("deinit context", .{});
 
-    defer ctx = null;
-
-    ctx.?.rwm_input_manager.destroy();
-    ctx.?.rwm_libinput_config.destroy();
-    ctx.?.rwm_xkb_config.destroy();
+    ctx.rwm_input_manager.destroy();
+    ctx.rwm_libinput_config.destroy();
+    ctx.rwm_xkb_config.destroy();
 
     {
-        var it = ctx.?.input_devices.safeIterator(.forward);
+        var it = ctx.input_devices.safeIterator(.forward);
         while (it.next()) |input_device| {
             input_device.destroy();
         }
-        ctx.?.input_devices.init();
+        ctx.input_devices.init();
     }
 
     {
-        var it = ctx.?.libinput_devices.safeIterator(.forward);
+        var it = ctx.libinput_devices.safeIterator(.forward);
         while (it.next()) |libinput_device| {
             libinput_device.destroy();
         }
-        ctx.?.libinput_devices.init();
+        ctx.libinput_devices.init();
     }
 
     {
-        var it = ctx.?.xkb_keyboards.safeIterator(.forward);
+        var it = ctx.xkb_keyboards.safeIterator(.forward);
         while (it.next()) |xkb_config| {
             xkb_config.destroy();
         }
-        ctx.?.xkb_keyboards.init();
+        ctx.xkb_keyboards.init();
     }
 }
 
 
 pub inline fn get() *Self {
-    std.debug.assert(ctx != null);
-
-    return &ctx.?;
+    return &ctx;
 }
 
 
