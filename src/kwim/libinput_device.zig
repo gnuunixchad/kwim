@@ -10,10 +10,11 @@ const river = wayland.client.river;
 
 const Config = @import("config");
 
-const utils = @import("utils.zig");
 const types = @import("types.zig");
-
+const Context = @import("context.zig");
 const InputDevice = @import("input_device.zig");
+
+const ctx = Context.get();
 
 
 link: wl.list.Link = undefined,
@@ -70,8 +71,8 @@ rotation_current: u32 = undefined,
 
 
 pub fn create(rwm_libinput_device: *river.LibinputDeviceV1) !*Self {
-    const libinput_device = try utils.allocator.create(Self);
-    errdefer utils.allocator.destroy(libinput_device);
+    const libinput_device = try ctx.gpa.create(Self);
+    errdefer ctx.gpa.destroy(libinput_device);
 
     log.debug("<{*}> created", .{ libinput_device });
 
@@ -92,7 +93,7 @@ pub fn destroy(self: *Self) void {
     self.link.remove();
     self.rwm_libinput_device.destroy();
 
-    utils.allocator.destroy(self);
+    ctx.gpa.destroy(self);
 }
 
 

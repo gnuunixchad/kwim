@@ -14,9 +14,7 @@ const river = wayland.client.river;
 
 const Config = @import("config");
 
-const utils = @import("utils.zig");
 const Context = @import("context.zig");
-
 const InputDevice = @import("input_device.zig");
 
 pub const NumlockState = enum {
@@ -64,8 +62,8 @@ keymap: ?Keymap = null,
 
 
 pub fn create(rwm_xkb_keyboard: *river.XkbKeyboardV1) !*Self {
-    const xkb_keyboard = try utils.allocator.create(Self);
-    errdefer utils.allocator.destroy(xkb_keyboard);
+    const xkb_keyboard = try ctx.gpa.create(Self);
+    errdefer ctx.gpa.destroy(xkb_keyboard);
 
     log.debug("<{*}> created", .{ xkb_keyboard });
 
@@ -84,14 +82,14 @@ pub fn destroy(self: *Self) void {
     log.debug("<{*}> destroyed", .{ self });
 
     if (self.layout.name) |name| {
-        utils.allocator.free(name);
+        ctx.gpa.free(name);
         self.layout.name = null;
     }
 
     self.link.remove();
     self.rwm_xkb_keyboard.destroy();
 
-    utils.allocator.destroy(self);
+    ctx.gpa.destroy(self);
 }
 
 
@@ -125,7 +123,7 @@ fn apply_rule(self: *Self, rule: *const Config.XkbKeyboardRule) void {
 
         keymap_updated = true;
 
-        if (self.layout.name) |name| utils.allocator.free(name);
+        if (self.layout.name) |name| ctx.gpa.free(name);
         self.layout = .{};
     }
 
@@ -201,17 +199,17 @@ fn set_keymap(self: *Self, keymap: *const Keymap) !void {
             const xkb_context = xkbcommon.Context.new(.no_flags) orelse return error.XkbContextNewFailed;
             defer xkb_context.unref();
 
-            const xkb_keymap_rules = if (map.rules) |rules| try utils.allocator.dupeZ(u8, rules) else null;
-            const xkb_keymap_model = if (map.model) |model| try utils.allocator.dupeZ(u8, model) else null;
-            const xkb_keymap_layout = if (map.layout) |layout| try utils.allocator.dupeZ(u8, layout) else null;
-            const xkb_keymap_variant = if (map.variant) |variant| try utils.allocator.dupeZ(u8, variant) else null;
-            const xkb_keymap_options = if (map.options) |options| try utils.allocator.dupeZ(u8, options) else null;
+            const xkb_keymap_rules = if (map.rules) |rules| try ctx.gpa.dupeZ(u8, rules) else null;
+            const xkb_keymap_model = if (map.model) |model| try ctx.gpa.dupeZ(u8, model) else null;
+            const xkb_keymap_layout = if (map.layout) |layout| try ctx.gpa.dupeZ(u8, layout) else null;
+            const xkb_keymap_variant = if (map.variant) |variant| try ctx.gpa.dupeZ(u8, variant) else null;
+            const xkb_keymap_options = if (map.options) |options| try ctx.gpa.dupeZ(u8, options) else null;
             defer {
-                if (xkb_keymap_rules) |rules| utils.allocator.free(rules);
-                if (xkb_keymap_model) |model| utils.allocator.free(model);
-                if (xkb_keymap_layout) |layout| utils.allocator.free(layout);
-                if (xkb_keymap_variant) |variant| utils.allocator.free(variant);
-                if (xkb_keymap_options) |options| utils.allocator.free(options);
+                if (xkb_keymap_rules) |rules| ctx.gpa.free(rules);
+                if (xkb_keymap_model) |model| ctx.gpa.free(model);
+                if (xkb_keymap_layout) |layout| ctx.gpa.free(layout);
+                if (xkb_keymap_variant) |variant| ctx.gpa.free(variant);
+                if (xkb_keymap_options) |options| ctx.gpa.free(options);
             }
 
             const xkb_rule_names = xkbcommon.RuleNames {
@@ -263,13 +261,13 @@ fn rwm_xkb_keyboard_listener(rwm_xkb_keyboard: *river.XkbKeyboardV1, event: rive
             log.debug("<{*}> layout, index: {}, name: {s}", .{ xkb_keyboard, data.index, data.name orelse "" });
 
             if (xkb_keyboard.layout.name) |name| {
-                utils.allocator.free(name);
+                ctx.gpa.free(name);
                 xkb_keyboard.layout.name = null;
             }
 
             xkb_keyboard.layout.index = data.index;
             if (data.name) |name| {
-                xkb_keyboard.layout.name = utils.allocator.dupe(u8, mem.span(name)) catch null;
+                xkb_keyboard.layout.name = ctx.gpa.dupe(u8, mem.span(name)) catch null;
             }
         },
         .capslock_enabled => {

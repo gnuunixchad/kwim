@@ -21,6 +21,8 @@ var ctx: Self = undefined;
 var inited: bool = false;
 
 
+gpa: mem.Allocator,
+
 rwm_input_manager: *river.InputManagerV1,
 rwm_libinput_config: *river.LibinputConfigV1,
 rwm_xkb_config: *river.XkbConfigV1,
@@ -36,6 +38,7 @@ pub inline fn check_init() void {
 
 
 pub fn init(
+    gpa: mem.Allocator,
     rwm_input_manager: *river.InputManagerV1,
     rwm_libinput_config: *river.LibinputConfigV1,
     rwm_xkb_config: *river.XkbConfigV1,
@@ -46,6 +49,7 @@ pub fn init(
     log.debug("init context", .{});
 
     ctx = .{
+        .gpa = gpa,
         .rwm_input_manager = rwm_input_manager,
         .rwm_libinput_config = rwm_libinput_config,
         .rwm_xkb_config = rwm_xkb_config,

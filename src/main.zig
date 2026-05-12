@@ -39,8 +39,6 @@ pub fn main() !void {
         else => std.heap.smp_allocator,
     };
 
-    kwim.init_allocator(&allocator);
-
     const option = try flags.parse(allocator) orelse kwim.RunOption {
         .apply = blk: {
             var path_buffer: [256]u8 = undefined;
@@ -75,6 +73,7 @@ pub fn main() !void {
         const rwm_xkb_config = globals.rwm_xkb_config orelse return error.MissingRiverXkbConfig;
 
         kwim.init(
+            allocator,
             rwm_input_manager,
             rwm_libinput_config,
             rwm_xkb_config,

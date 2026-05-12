@@ -8,7 +8,6 @@ const river = wayland.client.river;
 
 const Config = @import("config");
 
-const utils = @import("kwim/utils.zig");
 const types = @import("kwim/types.zig");
 const Context = @import("kwim/context.zig");
 const InputDevice = @import("kwim/input_device.zig");
@@ -23,7 +22,6 @@ pub const Keymap = XkbKeyboard.Keymap;
 
 pub const init = Context.init;
 pub const deinit = Context.deinit;
-pub const init_allocator = utils.init_allocator;
 
 pub const DeviceType = enum {
     @"input-device",

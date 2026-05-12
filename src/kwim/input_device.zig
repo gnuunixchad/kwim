@@ -10,12 +10,14 @@ const river = wayland.client.river;
 
 const Config = @import("config");
 
-const utils = @import("utils.zig");
+const Context = @import("context.zig");
 
 pub const RepeatInfo = struct {
     rate: i32,
     delay: i32,
 };
+
+const ctx = Context.get();
 
 
 link: wl.list.Link = undefined,
@@ -27,8 +29,8 @@ type: river.InputDeviceV1.Type = undefined,
 
 
 pub fn create(rwm_input_device: *river.InputDeviceV1) !*Self {
-    const input_device = try utils.allocator.create(Self);
-    errdefer utils.allocator.destroy(input_device);
+    const input_device = try ctx.gpa.create(Self);
+    errdefer ctx.gpa.destroy(input_device);
 
     log.debug("<{*}> created", .{ input_device });
 
@@ -47,13 +49,13 @@ pub fn destroy(self: *Self) void {
     log.debug("<{*}> destroyed", .{ self });
 
     if (self.name) |name| {
-        utils.allocator.free(name);
+        ctx.gpa.free(name);
     }
 
     self.link.remove();
     self.rwm_input_device.destroy();
 
-    utils.allocator.destroy(self);
+    ctx.gpa.destroy(self);
 }
 
 
@@ -92,10 +94,10 @@ fn apply_rule(self: *Self, rule: *const Config.InputDeviceRule) void {
 
 fn set_name(self: *Self, name: []const u8) void {
     if (self.name) |name_| {
-        utils.allocator.free(name_);
+        ctx.gpa.free(name_);
         self.name = null;
     }
-    self.name = utils.allocator.dupe(u8, name) catch null;
+    self.name = ctx.gpa.dupe(u8, name) catch null;
 }
 
 
