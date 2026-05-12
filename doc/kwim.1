@@ -5,11 +5,11 @@
 .nh
 .ad l
 .\" Begin generated content:
-.TH "KWIM" "1" "2026-05-10" "kwim" "kwm input manager"
+.TH "KWIM" "1" "2026-05-12" "kwim" "kewuaa's input manager"
 .PP
 .SH NAME
 .PP
-kwim - kwm input manager for River Wayland compositor
+kwim - kewuaa'\&s input manager for River Wayland compositor
 .PP
 .SH SYNOPSIS
 .PP
@@ -19,18 +19,16 @@ kwim - kwm input manager for River Wayland compositor
 .PP
 .SH DESCRIPTION
 .PP
-\fIkwm\fR is a DWM-like dynamic tiling window manager implementing the
-river-window-management-v1 protocol.\&
-.PP
 \fBkwim\fR is an input manager separated from \fIkwm\fR, implementing the
 river-input-management-v1 protocol and/or related protocols in order to
 configure input devices independent of window manager.\&
 .PP
-\fIkwm\fR will automatically run \fBkwim\fR at startup.\& You can also run \fBkwim\fR to list
-input devices or apply a single rule on demand.\&
+\fIkwm\fR will automatically run \fBkwim\fR at startup, for other window managers you
+can put call \fBkwim\fR from your init file.\& You can also run \fBkwim\fR to list input
+devices or apply a single rule on demand.\&
 .PP
-Without any subcommands and options, \fBkwim\fR reads input rules from the same
-configuration file used by \fIkwm\fR.\&
+Without any subcommands and options, \fBkwim\fR applies rules from the configuration
+file.\&
 .PP
 .SH OPTIONS
 .PP
@@ -233,13 +231,12 @@ Keymap options (e.\&g.\& rules=.\&.\&.\&,model=.\&.\&.\&,layout=.\&.\&.\&,varian
 .RE
 .SH CONFIGURATION
 .PP
-By default, kwim reads input rules from the same configuration file used by
-\fIkwm\fR, in the following paths:
+By default, kwim reads input rules from the following paths:
 .PP
 .RS 4
-$XDG_CONFIG_HOME/kwm/config.\&zon
+$XDG_CONFIG_HOME/kwim/config.\&zon
 .PP
-$HOME/.\&config/kwm/config.\&zon
+$HOME/.\&config/kwim/config.\&zon
 .PP
 .RE
 When user configuration doesn'\&t exists, kwim will try to use the compile time

@@ -197,6 +197,7 @@ pub fn build(b: *std.Build) void {
 
     b.installFile("doc/kwim.1", "share/man/man1/kwim.1");
     b.installFile("doc/kwim.5", "share/man/man5/kwim.5");
+    b.installFile("config.def.zon", "share/doc/kwim/config.zon",);
     if (bash_completion) {
         b.installFile("completions/kwim.bash", "share/bash-completion/completions/kwim");
     }

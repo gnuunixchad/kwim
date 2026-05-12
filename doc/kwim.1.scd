@@ -1,8 +1,8 @@
-KWIM(1) "kwim" "kwm input manager"
+KWIM(1) "kwim" "kewuaa's input manager"
 
 # NAME
 
-kwim - kwm input manager for River Wayland compositor
+kwim - kewuaa's input manager for River Wayland compositor
 
 # SYNOPSIS
 
@@ -11,18 +11,16 @@ kwim - kwm input manager for River Wayland compositor
 
 # DESCRIPTION
 
-_kwm_ is a DWM-like dynamic tiling window manager implementing the
-river-window-management-v1 protocol.
-
 *kwim* is an input manager separated from _kwm_, implementing the
 river-input-management-v1 protocol and/or related protocols in order to
 configure input devices independent of window manager.
 
-_kwm_ will automatically run *kwim* at startup. You can also run *kwim* to list
-input devices or apply a single rule on demand.
+_kwm_ will automatically run *kwim* at startup, for other window managers you
+can put call *kwim* from your init file. You can also run *kwim* to list input
+devices or apply a single rule on demand.
 
-Without any subcommands and options, *kwim* reads input rules from the same
-configuration file used by _kwm_.
+Without any subcommands and options, *kwim* applies rules from the configuration
+file.
 
 # OPTIONS
 
@@ -155,12 +153,11 @@ configuration file used by _kwm_.
 
 # CONFIGURATION
 
-By default, kwim reads input rules from the same configuration file used by
-_kwm_, in the following paths:
+By default, kwim reads input rules from the following paths:
 
-	$XDG_CONFIG_HOME/kwm/config.zon
+	$XDG_CONFIG_HOME/kwim/config.zon
 
-	$HOME/.config/kwm/config.zon
+	$HOME/.config/kwim/config.zon
 
 When user configuration doesn't exists, kwim will try to use the compile time
 configuration.

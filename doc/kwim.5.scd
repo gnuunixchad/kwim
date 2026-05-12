@@ -1,4 +1,4 @@
-KWIM(5) "kwim" "kwm's input manager"
+KWIM(5) "kwim" "kewuaa's input manager"
 
 # NAME
 
@@ -6,18 +6,20 @@ kwim - kwm input manager for River Wayland compositor
 
 # DESCRIPTION
 
-By default, kwim reads input rules from the same configuration file used by
-_kwm_, in the following paths:
+By default, kwim reads input rules from the following paths:
 
-	$XDG_CONFIG_HOME/kwm/config.zon
+	$XDG_CONFIG_HOME/kwim/config.zon
 
-	$HOME/.config/kwm/config.zon
-
-When user configuration doesn't exists, kwim will try to use the compile time
-configuration.
+	$HOME/.config/kwim/config.zon
 
 
 # CONFIGURATION
+
+Default configuration is usually installed to one of the following paths:
+
+	/usr/share/doc/kwim/config.zon
+
+	/usr/local/share/doc/kwim/config.zon
 
 ## input-device rules
 
@@ -127,9 +129,6 @@ configuration.
 
 _kwim_(1), _kwm_(1), _river_(1)
 
-Default configuration for *kwm*:
-
-	https://github.com/kewuaa/kwm/blob/master/config.def.zon
 
 # BUGS
 
