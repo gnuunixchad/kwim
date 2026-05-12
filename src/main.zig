@@ -44,9 +44,9 @@ pub fn main() !void {
             var path_buffer: [256]u8 = undefined;
             const config_path = try (
                 if (posix.getenv("XDG_CONFIG_HOME")) |config_home|
-                    fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
+                    fmt.bufPrint(&path_buffer, "{s}/kwim/config.zon", .{ config_home })
                 else if (posix.getenv("HOME")) |home|
-                    fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
+                    fmt.bufPrint(&path_buffer, "{s}/.config/kwim/config.zon", .{ home })
                 else return error.GetConfigHomeFailed
             );
             break :blk try Config.load(allocator, config_path);
