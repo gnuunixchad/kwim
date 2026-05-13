@@ -102,20 +102,9 @@ pub fn parse(allocator: mem.Allocator) !?kwim.RunOption {
                 .list => .{ .list = try parse_list(allocator, &it) },
                 .apply => .{ .apply = try parse_apply(allocator, &it) },
             }
-        else .{ .apply = blk: {
-            var path_buffer: [256]u8 = undefined;
-            const config_path = 
-                if (res.args.config) |config_path| config_path
-                else try (
-                    if (posix.getenv("XDG_CONFIG_HOME")) |config_home|
-                        fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
-                    else if (posix.getenv("HOME")) |home|
-                        fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
-                    else return error.GetConfigHomeFailed
-                );
-            break :blk try config.load(allocator, config_path);
-        },
-    };
+        else if (res.args.config) |config_path|
+            .{ .apply = try config.load(allocator, config_path) }
+        else null;
 }
 
 
