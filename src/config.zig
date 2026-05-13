@@ -22,6 +22,8 @@ pub const Config = struct {
 
 
 pub fn load(gpa: mem.Allocator, path: []const u8) !Config {
+    log.info("loading configuraton from `{s}`", .{ path });
+
     const file = fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
         log.warn("Failed to open `{s}`: {}", .{ path, err });
         return .{};
