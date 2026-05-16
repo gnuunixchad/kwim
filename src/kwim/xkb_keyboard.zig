@@ -1,6 +1,7 @@
 const Self = @This();
 
 const std = @import("std");
+const Io = std.Io;
 const mem = std.mem;
 const meta = std.meta;
 const posix = std.posix;
@@ -178,10 +179,10 @@ fn set_keymap(self: *Self, keymap: *const Keymap) !void {
         .file => |file| blk: {
             log.info("<{*}> set keymap file: `{s}` with format {s}", .{ self, file.path, @tagName(file.format) });
 
-            const fd = try posix.open(file.path, .{ .ACCMODE = .RDWR }, 0);
-            defer posix.close(fd);
+            const f = try Io.Dir.cwd().openFile(ctx.io, file.path, .{ .mode = .read_write });
+            defer f.close(ctx.io);
 
-            break :blk try ctx.rwm_xkb_config.createKeymap(fd, file.format);
+            break :blk try ctx.rwm_xkb_config.createKeymap(f.handle, file.format);
         },
         .options => |map| blk: {
             log.info(
@@ -228,10 +229,10 @@ fn set_keymap(self: *Self, keymap: *const Keymap) !void {
             defer xkb_keymap.unref();
 
             const fd = try posix.memfd_create("kwm-keymap-file", linux.MFD.CLOEXEC);
-            defer posix.close(fd);
+            defer posix_close(fd);
 
             const xkb_keymap_str = xkb_keymap.getAsString2(.text_v2, .{});
-            _ = try posix.write(fd, mem.span(xkb_keymap_str orelse return error.GetXkbKeymapStringFailed));
+            _ = try posix_write(fd, mem.span(xkb_keymap_str orelse return error.GetXkbKeymapStringFailed));
 
             break :blk try ctx.rwm_xkb_config.createKeymap(fd, .text_v2);
         }
@@ -295,5 +296,45 @@ fn rwm_xkb_keyboard_listener(rwm_xkb_keyboard: *river.XkbKeyboardV1, event: rive
 
             xkb_keyboard.destroy();
         }
+    }
+}
+
+
+fn posix_write(fd: posix.fd_t, bytes: []const u8) !usize {
+    if (bytes.len == 0) return 0;
+    const max_count = 0x7ffff000;
+    while (true) {
+        const rc = posix.system.write(fd, bytes.ptr, @min(bytes.len, max_count));
+        switch (posix.errno(rc)) {
+            .SUCCESS => return @intCast(rc),
+            .INTR => continue,
+            .INVAL => return error.InvalidArgument,
+            .FAULT => unreachable,
+            .SRCH => return error.ProcessNotFound,
+            .AGAIN => return error.WouldBlock,
+            .BADF => return error.NotOpenForWriting, // can be a race condition.
+            .DESTADDRREQ => unreachable, // `connect` was never called.
+            .DQUOT => return error.DiskQuota,
+            .FBIG => return error.FileTooBig,
+            .IO => return error.InputOutput,
+            .NOSPC => return error.NoSpaceLeft,
+            .ACCES => return error.AccessDenied,
+            .PERM => return error.PermissionDenied,
+            .PIPE => return error.BrokenPipe,
+            .CONNRESET => return error.ConnectionResetByPeer,
+            .BUSY => return error.DeviceBusy,
+            .NXIO => return error.NoDevice,
+            .MSGSIZE => return error.MessageTooBig,
+            else => |err| return posix.unexpectedErrno(err),
+        }
+    }
+}
+
+
+fn posix_close(fd: posix.fd_t) void {
+    switch (posix.errno(posix.system.close(fd))) {
+        .BADF => unreachable, // Always a race condition.
+        .INTR => return, // This is still a success. See https://github.com/ziglang/zig/issues/2425
+        else => return,
     }
 }

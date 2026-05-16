@@ -1,15 +1,15 @@
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const mem = std.mem;
 const heap = std.heap;
 const process = std.process;
 
 
-pub fn main() !void {
+pub fn main(init: process.Init) !void {
     var input: ?[]const u8 = null;
     var output: ?[]const u8 = null;
 
-    var it = process.args();
+    var it = init.minimal.args.iterate();
     while (it.next()) |arg| {
         if (mem.eql(u8, arg, "-i")) {
             input = it.next();
@@ -18,20 +18,22 @@ pub fn main() !void {
         }
     }
 
-    const input_file = try fs.cwd().openFile(
+    const input_file = try Io.Dir.cwd().openFile(
+        init.io,
         input orelse return error.MissingInput,
         .{ .mode = .read_only },
     );
-    defer input_file.close();
+    defer input_file.close(init.io);
     var input_buffer: [1024]u8 = undefined;
     var input_reader = input_file.reader(&input_buffer);
     const input_interface = &input_reader.interface;
 
-    const output_file = try fs.createFileAbsolute(
+    const output_file = try Io.Dir.createFileAbsolute(
+        init.io,
         output orelse return error.MissingOutput,
         .{},
     );
-    defer output_file.close();
+    defer output_file.close(init.io);
     var output_buffer: [1024]u8 = undefined;
     var output_writer = output_file.writer(&output_buffer);
     const output_interface = &output_writer.interface;

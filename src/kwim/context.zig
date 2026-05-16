@@ -2,7 +2,7 @@ const Self = @This();
 
 const build_options = @import("build_options");
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const mem = std.mem;
 const log = std.log.scoped(.context);
 
@@ -22,6 +22,7 @@ var inited: bool = false;
 
 
 gpa: mem.Allocator,
+io: Io,
 
 rwm_input_manager: *river.InputManagerV1,
 rwm_libinput_config: *river.LibinputConfigV1,
@@ -39,6 +40,7 @@ pub inline fn check_init() void {
 
 pub fn init(
     gpa: mem.Allocator,
+    io: Io,
     rwm_input_manager: *river.InputManagerV1,
     rwm_libinput_config: *river.LibinputConfigV1,
     rwm_xkb_config: *river.XkbConfigV1,
@@ -50,6 +52,7 @@ pub fn init(
 
     ctx = .{
         .gpa = gpa,
+        .io = io,
         .rwm_input_manager = rwm_input_manager,
         .rwm_libinput_config = rwm_libinput_config,
         .rwm_xkb_config = rwm_xkb_config,
@@ -146,7 +149,7 @@ pub fn apply_config(self: *Self, cfg: *const config.Config) void {
 
 pub fn list_input_devices(self: *Self, pattern: ?config.Pattern) !void {
     var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+    var stdout_writer = Io.File.stdout().writer(self.io, &stdout_buffer);
     const stdout = &stdout_writer.interface;
 
     {
@@ -169,7 +172,7 @@ pub fn list_input_devices(self: *Self, pattern: ?config.Pattern) !void {
 
 pub fn list_libinput_devices(self: *Self, pattern: ?config.Pattern) !void {
     var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+    var stdout_writer = Io.File.stdout().writer(self.io, &stdout_buffer);
     const stdout = &stdout_writer.interface;
 
     {
@@ -312,7 +315,7 @@ pub fn list_libinput_devices(self: *Self, pattern: ?config.Pattern) !void {
 
 pub fn list_xkb_keyboards(self: *Self, pattern: ?config.Pattern) !void {
     var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+    var stdout_writer = Io.File.stdout().writer(self.io, &stdout_buffer);
     const stdout = &stdout_writer.interface;
 
     {

@@ -1,10 +1,9 @@
 const build_options = @import("build_options");
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const mem = std.mem;
 const fmt = std.fmt;
 const meta = std.meta;
-const posix = std.posix;
 const process = std.process;
 
 const clap = @import("clap");
@@ -62,8 +61,14 @@ const subcommand_params = clap.parseParamsComptime(
 );
 
 
-pub fn parse(allocator: mem.Allocator) !?kwim.RunOption {
-    var it = process.args();
+pub fn parse(
+    ctx: struct {
+        gpa: mem.Allocator,
+        io: Io,
+    },
+    args: process.Args
+) !?kwim.RunOption {
+    var it = args.iterate();
     _ = it.next();
 
     var diag = clap.Diagnostic{};
@@ -74,41 +79,47 @@ pub fn parse(allocator: mem.Allocator) !?kwim.RunOption {
         &it,
         .{
             .diagnostic = &diag,
-            .allocator = allocator,
+            .allocator = ctx.gpa,
             .terminating_positional = 0,
         },
     ) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(ctx.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &main_params, .{});
-        posix.exit(0);
+        try clap.helpToFile(ctx.io, .stdout(), clap.Help, &main_params, .{});
+        process.exit(0);
     }
     if (res.args.version != 0) {
         var stdout_buffer: [16]u8 = undefined;
-        var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+        var stdout_writer = Io.File.stdout().writer(ctx.io, &stdout_buffer);
         const stdout = &stdout_writer.interface;
         try stdout.writeAll(build_options.version++"\n");
         try stdout.flush();
-        posix.exit(0);
+        process.exit(0);
     }
 
     return
         if (res.positionals[0]) |option|
             switch (option) {
-                .list => .{ .list = try parse_list(allocator, &it) },
-                .apply => .{ .apply = try parse_apply(allocator, &it) },
+                .list => .{ .list = try parse_list(.{ .gpa = ctx.gpa, .io = ctx.io }, &it) },
+                .apply => .{ .apply = try parse_apply(.{ .gpa = ctx.gpa, .io = ctx.io }, &it) },
             }
         else if (res.args.config) |config_path|
-            .{ .apply = try config.load(allocator, config_path) }
+            .{ .apply = try config.load(.{ .gpa = ctx.gpa, .io = ctx.io }, config_path) }
         else null;
 }
 
 
-fn parse_list(allocator: mem.Allocator, it: *process.ArgIterator) !kwim.ListOption {
+fn parse_list(
+    ctx: struct {
+        gpa: mem.Allocator,
+        io: Io,
+    },
+    it: *process.Args.Iterator
+) !kwim.ListOption {
     const params = comptime clap.parseParamsComptime(
         \\ -h, --help       Print this help message and exit
         \\ <DEVICE_TYPE>    Device type (e.g. input-device, libinput-device, xkb-keyboard)
@@ -122,29 +133,35 @@ fn parse_list(allocator: mem.Allocator, it: *process.ArgIterator) !kwim.ListOpti
         parsers,
         it,
         .{
-            .allocator = allocator,
+            .allocator = ctx.gpa,
             .diagnostic = &diag,
             .terminating_positional = 0,
         },
     ) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(ctx.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
-        posix.exit(0);
+        try clap.helpToFile(ctx.io, .stdout(), clap.Help, &params, .{});
+        process.exit(0);
     }
 
     return .{
         .device_type = res.positionals[0] orelse return error.MissingDeviceType,
-        .pattern = try parse_list_pattern(allocator, it),
+        .pattern = try parse_list_pattern(.{ .gpa = ctx.gpa, .io = ctx.io }, it),
     };
 }
 
 
-fn parse_list_pattern(allocator: mem.Allocator, it: *process.ArgIterator) !?config.Pattern {
+fn parse_list_pattern(
+    ctx: struct {
+        gpa: mem.Allocator,
+        io: Io,
+    },
+    it: *process.Args.Iterator
+) !?config.Pattern {
     const params = subcommand_params;
 
     var diag = clap.Diagnostic{};
@@ -154,27 +171,27 @@ fn parse_list_pattern(allocator: mem.Allocator, it: *process.ArgIterator) !?conf
         parsers,
         it,
         .{
-            .allocator = allocator,
+            .allocator = ctx.gpa,
             .diagnostic = &diag,
             .terminating_positional = 0,
         },
     ) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(ctx.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
-        posix.exit(0);
+        try clap.helpToFile(ctx.io, .stdout(), clap.Help, &params, .{});
+        process.exit(0);
     }
 
     var pattern: ?config.Pattern = null;
-    errdefer if (pattern) |p| allocator.free(p.str);
+    errdefer if (pattern) |p| ctx.gpa.free(p.str);
 
     if (res.args.name) |name| {
         pattern = .{
-            .str = try allocator.dupe(u8, name),
+            .str = try ctx.gpa.dupe(u8, name),
         };
     }
     if (pattern) |*p| {
@@ -190,7 +207,13 @@ fn parse_list_pattern(allocator: mem.Allocator, it: *process.ArgIterator) !?conf
 }
 
 
-fn parse_apply(allocator: mem.Allocator, it: *process.ArgIterator) !config.Config {
+fn parse_apply(
+    ctx: struct {
+        gpa: mem.Allocator,
+        io: Io,
+    },
+    it: *process.Args.Iterator
+) !config.Config {
     const params = comptime clap.parseParamsComptime(
         \\ -h, --help       Print this help message and exit
         \\ <DEVICE_TYPE>    Device type (e.g. input-device, libinput-device, xkb-keyboard)
@@ -206,47 +229,47 @@ fn parse_apply(allocator: mem.Allocator, it: *process.ArgIterator) !config.Confi
         parsers,
         it,
         .{
-            .allocator = allocator,
+            .allocator = ctx.gpa,
             .diagnostic = &diag,
             .terminating_positional = 0,
         },
     ) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(ctx.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
-        posix.exit(0);
+        try clap.helpToFile(ctx.io, .stdout(), clap.Help, &params, .{});
+        process.exit(0);
     }
 
     if (res.positionals[0]) |device_type| {
         switch (device_type) {
             .@"input-device" => {
-                const rule = try parse_input_device(allocator, it);
+                const rule = try parse_input_device(.{ .gpa = ctx.gpa, .io = ctx.io }, it);
                 if (all_null(rule)) return error.MissingInputDeviceRule;
 
-                var rules = try allocator.alloc(config.InputDeviceRule, 1);
-                errdefer allocator.free(rules);
+                var rules = try ctx.gpa.alloc(config.InputDeviceRule, 1);
+                errdefer ctx.gpa.free(rules);
                 rules[0] = rule;
                 cfg.input_device_rules = rules;
             },
             .@"libinput-device" => {
-                const rule = try parse_libinput_device(allocator, it);
+                const rule = try parse_libinput_device(.{ .gpa = ctx.gpa, .io = ctx.io }, it);
                 if (all_null(rule)) return error.MissingLibinputDeviceRule;
 
-                var rules = try allocator.alloc(config.LibinputDeviceRule, 1);
-                errdefer allocator.free(rules);
+                var rules = try ctx.gpa.alloc(config.LibinputDeviceRule, 1);
+                errdefer ctx.gpa.free(rules);
                 rules[0] = rule;
                 cfg.libinput_device_rules = rules;
             },
             .@"xkb-keyboard" => {
-                const rule = try parse_xkb_keyboard(allocator, it);
+                const rule = try parse_xkb_keyboard(.{ .gpa = ctx.gpa, .io = ctx.io }, it);
                 if (all_null(rule)) return error.MissingXkbKeyboardRule;
 
-                var rules = try allocator.alloc(config.XkbKeyboardRule, 1);
-                errdefer allocator.free(rules);
+                var rules = try ctx.gpa.alloc(config.XkbKeyboardRule, 1);
+                errdefer ctx.gpa.free(rules);
                 rules[0] = rule;
                 cfg.xkb_keyboard_rules = rules;
             },
@@ -257,7 +280,13 @@ fn parse_apply(allocator: mem.Allocator, it: *process.ArgIterator) !config.Confi
 }
 
 
-fn parse_input_device(allocator: mem.Allocator, it: *process.ArgIterator) !config.InputDeviceRule {
+fn parse_input_device(
+    ctx: struct {
+        gpa: mem.Allocator,
+        io: Io,
+    },
+    it: *process.Args.Iterator
+) !config.InputDeviceRule {
     const params = subcommand_params ++ comptime clap.parseParamsComptime(
         \\ --repeat-info <REPEAT_INFO>      Keyboard repeat info (e.g. 50,300)
         \\ --scroll-factor <SCROLL_FACTOR>  Pointer scroll factor
@@ -271,25 +300,25 @@ fn parse_input_device(allocator: mem.Allocator, it: *process.ArgIterator) !confi
         parsers,
         it,
         .{
-            .allocator = allocator,
+            .allocator = ctx.gpa,
             .diagnostic = &diag,
         },
     ) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(ctx.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
-        posix.exit(0);
+        try clap.helpToFile(ctx.io, .stdout(), clap.Help, &params, .{});
+        process.exit(0);
     }
 
     var rule = config.InputDeviceRule{};
-    errdefer if (rule.name) |name| allocator.free(name.str);
+    errdefer if (rule.name) |name| ctx.gpa.free(name.str);
 
     if (res.args.name) |name| {
-        rule.name = .{ .str = try allocator.dupe(u8, name) };
+        rule.name = .{ .str = try ctx.gpa.dupe(u8, name) };
     }
     if (rule.name) |*name| {
         if (res.args.@"regex" != 0) {
@@ -315,7 +344,13 @@ fn parse_input_device(allocator: mem.Allocator, it: *process.ArgIterator) !confi
 }
 
 
-fn parse_libinput_device(allocator: mem.Allocator, it: *process.ArgIterator) !config.LibinputDeviceRule {
+fn parse_libinput_device(
+    ctx: struct {
+        gpa: mem.Allocator,
+        io: Io,
+    },
+    it: *process.Args.Iterator
+) !config.LibinputDeviceRule {
     const params = subcommand_params ++ comptime clap.parseParamsComptime(
         \\ --send-event-modes <SEND_EVENT_MODE_STATE>       Set send events mode (enabled, disabled, disabled_on_external_mouse)
         \\ --tap <TAP_STATE>                                Set tap to click state (enabled, disabled)
@@ -347,25 +382,25 @@ fn parse_libinput_device(allocator: mem.Allocator, it: *process.ArgIterator) !co
         parsers,
         it,
         .{
-            .allocator = allocator,
+            .allocator = ctx.gpa,
             .diagnostic = &diag,
         },
     ) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(ctx.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
-        posix.exit(0);
+        try clap.helpToFile(ctx.io, .stdout(), clap.Help, &params, .{});
+        process.exit(0);
     }
 
     var rule = config.LibinputDeviceRule{};
-    errdefer if (rule.name) |name| allocator.free(name.str);
+    errdefer if (rule.name) |name| ctx.gpa.free(name.str);
 
     if (res.args.name) |name| {
-        rule.name = .{ .str = try allocator.dupe(u8, name) };
+        rule.name = .{ .str = try ctx.gpa.dupe(u8, name) };
     }
     if (rule.name) |*name| {
         if (res.args.@"regex" != 0) {
@@ -448,7 +483,13 @@ fn parse_libinput_device(allocator: mem.Allocator, it: *process.ArgIterator) !co
 }
 
 
-fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !config.XkbKeyboardRule {
+fn parse_xkb_keyboard(
+    ctx: struct {
+        gpa: mem.Allocator,
+        io: Io,
+    },
+    it: *process.Args.Iterator
+) !config.XkbKeyboardRule {
     const params = subcommand_params ++ comptime clap.parseParamsComptime(
         \\ --numlock <NUMLOCK_STATE>        Set numlock state (enabled, disabled)
         \\ --capslock <CAPSLOCK_STATE>      Set capslock state (enabled, disabled)
@@ -469,37 +510,37 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !confi
         parsers,
         it,
         .{
-            .allocator = allocator,
+            .allocator = ctx.gpa,
             .diagnostic = &diag,
         },
     ) catch |err| {
-        try diag.reportToFile(.stderr(), err);
+        try diag.reportToFile(ctx.io, .stderr(), err);
         return err;
     };
     defer res.deinit();
 
     if (res.args.help != 0) {
-        try clap.helpToFile(.stdout(), clap.Help, &params, .{});
-        posix.exit(0);
+        try clap.helpToFile(ctx.io, .stdout(), clap.Help, &params, .{});
+        process.exit(0);
     }
 
     var rule = config.XkbKeyboardRule{};
     errdefer {
-        if (rule.name) |name| allocator.free(name.str);
+        if (rule.name) |name| ctx.gpa.free(name.str);
         if (rule.layout) |layout| {
             switch (layout) {
                 .index => {},
-                .name => |name| allocator.free(name),
+                .name => |name| ctx.gpa.free(name),
             }
         }
         if (rule.keymap) |keymap| {
             switch (keymap) {
                 .file => |file| {
-                    allocator.free(file.path);
+                    ctx.gpa.free(file.path);
                 },
                 .options => |map| {
                     inline for (@typeInfo(@TypeOf(map)).@"struct".fields) |field_info| {
-                        if (@field(map, field_info.name)) |ptr| allocator.free(ptr);
+                        if (@field(map, field_info.name)) |ptr| ctx.gpa.free(ptr);
                     }
                 }
             }
@@ -507,7 +548,7 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !confi
     }
 
     if (res.args.name) |name| {
-        rule.name = .{ .str = try allocator.dupe(u8, name) };
+        rule.name = .{ .str = try ctx.gpa.dupe(u8, name) };
     }
     if (rule.name) |*name| {
         if (res.args.@"regex" != 0) {
@@ -529,7 +570,7 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !confi
     if (res.args.layout) |layout| {
         rule.layout = blk: {
             const index = fmt.parseInt(u32, layout, 0) catch
-                break :blk .{ .name = try allocator.dupeZ(u8, layout) };
+                break :blk .{ .name = try ctx.gpa.dupeZ(u8, layout) };
             break :blk .{ .index = index };
         };
     }
@@ -538,7 +579,7 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !confi
         var split = mem.splitAny(u8, str, "@");
         rule.keymap = .{
             .file = .{
-                .path = try allocator.dupe(u8, split.next().?),
+                .path = try ctx.gpa.dupe(u8, split.next().?),
                 .format = meta.stringToEnum(river.XkbConfigV1.KeymapFormat, split.next().?).?,
             },
         };
@@ -548,7 +589,7 @@ fn parse_xkb_keyboard(allocator: mem.Allocator, it: *process.ArgIterator) !confi
         inline for (@typeInfo(@TypeOf(rule.keymap.?.options)).@"struct".fields) |field| {
             if (rule.keymap == null) rule.keymap = .{ .options = .{} };
             if (@field(res.args, "keymap-"++field.name)) |str| {
-                @field(rule.keymap.?.options, field.name) = try allocator.dupe(u8, str);
+                @field(rule.keymap.?.options, field.name) = try ctx.gpa.dupe(u8, str);
             }
         }
     }

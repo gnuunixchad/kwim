@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
             const git_describe_long = b.runAllowFail(
                 &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
                 &ret,
-                .Ignore,
+                .ignore,
             ) catch break :blk version;
 
             var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
