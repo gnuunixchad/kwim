@@ -4,6 +4,7 @@ const std = @import("std");
 const Io = std.Io;
 const mem = std.mem;
 const meta = std.meta;
+const heap = std.heap;
 const posix = std.posix;
 const linux = std.os.linux;
 const log = std.log.scoped(.xkb_keyboard);
@@ -200,18 +201,15 @@ fn set_keymap(self: *Self, keymap: *const Keymap) !void {
             const xkb_context = xkbcommon.Context.new(.no_flags) orelse return error.XkbContextNewFailed;
             defer xkb_context.unref();
 
-            const xkb_keymap_rules = if (map.rules) |rules| try ctx.gpa.dupeZ(u8, rules) else null;
-            const xkb_keymap_model = if (map.model) |model| try ctx.gpa.dupeZ(u8, model) else null;
-            const xkb_keymap_layout = if (map.layout) |layout| try ctx.gpa.dupeZ(u8, layout) else null;
-            const xkb_keymap_variant = if (map.variant) |variant| try ctx.gpa.dupeZ(u8, variant) else null;
-            const xkb_keymap_options = if (map.options) |options| try ctx.gpa.dupeZ(u8, options) else null;
-            defer {
-                if (xkb_keymap_rules) |rules| ctx.gpa.free(rules);
-                if (xkb_keymap_model) |model| ctx.gpa.free(model);
-                if (xkb_keymap_layout) |layout| ctx.gpa.free(layout);
-                if (xkb_keymap_variant) |variant| ctx.gpa.free(variant);
-                if (xkb_keymap_options) |options| ctx.gpa.free(options);
-            }
+            const arena_allocator: heap.ArenaAllocator = .init(ctx.gpa);
+            defer arena_allocator.deinit();
+            const arena = arena_allocator.allocator();
+
+            const xkb_keymap_rules = if (map.rules) |rules| try arena.dupeZ(u8, rules) else null;
+            const xkb_keymap_model = if (map.model) |model| try arena.dupeZ(u8, model) else null;
+            const xkb_keymap_layout = if (map.layout) |layout| try arena.dupeZ(u8, layout) else null;
+            const xkb_keymap_variant = if (map.variant) |variant| try arena.dupeZ(u8, variant) else null;
+            const xkb_keymap_options = if (map.options) |options| try arena.dupeZ(u8, options) else null;
 
             const xkb_rule_names = xkbcommon.RuleNames {
                 .rules = if (xkb_keymap_rules) |rules| rules.ptr else null,
