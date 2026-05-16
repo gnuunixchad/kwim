@@ -11,7 +11,7 @@ configure input devices independent of window manager.
 
 ## Build
 
-Requires zig 0.15.x.
+Requires zig 0.16.x.
 
 ```sh
 zig build -Doptimize=ReleaseSafe
