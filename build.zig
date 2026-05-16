@@ -63,6 +63,7 @@ pub fn build(b: *std.Build) void {
         }
     };
 
+    const use_llvm = b.option(bool, "llvm", "if to use LLVM compiler and linker");
     const pie = b.option(bool, "pie", "if to enable pie") orelse false;
     const config = b.option([]const u8, "config", "config path");
     const kwm_config = b.option([]const u8, "kwm-config", "kwm config path");
@@ -94,6 +95,8 @@ pub fn build(b: *std.Build) void {
                         .root_source_file = b.path("src/load_default_config.zig"),
                         .link_libc = true,
                     }),
+                    .use_llvm = use_llvm,
+                    .use_lld = use_llvm,
                 });
                 const load_default_config_run = b.addRunArtifact(load_default_config);
                 load_default_config_run.addArg("-i");
@@ -176,6 +179,8 @@ pub fn build(b: *std.Build) void {
 
             .link_libc = true,
         }),
+        .use_llvm = use_llvm,
+        .use_lld = use_llvm,
     });
     exe.pie = pie;
     exe.root_module.linkSystemLibrary("wayland-client", .{});
