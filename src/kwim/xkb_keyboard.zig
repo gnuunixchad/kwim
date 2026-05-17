@@ -201,7 +201,7 @@ fn set_keymap(self: *Self, keymap: *const Keymap) !void {
             const xkb_context = xkbcommon.Context.new(.no_flags) orelse return error.XkbContextNewFailed;
             defer xkb_context.unref();
 
-            const arena_allocator: heap.ArenaAllocator = .init(ctx.gpa);
+            var arena_allocator: heap.ArenaAllocator = .init(ctx.gpa);
             defer arena_allocator.deinit();
             const arena = arena_allocator.allocator();
 
