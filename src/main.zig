@@ -4,7 +4,6 @@ const fs = std.fs;
 const fmt = std.fmt;
 const log = std.log;
 const mem = std.mem;
-const posix = std.posix;
 const process = std.process;
 
 const clap = @import("clap");
@@ -24,37 +23,23 @@ const Globals = struct {
 };
 
 
-pub fn main() !void {
-    var gpa = switch (comptime builtins.mode) {
-        .Debug => std.heap.GeneralPurposeAllocator(.{}) {},
-        else => void{},
-    };
-    defer switch (comptime builtins.mode) {
-        .Debug => if (gpa.deinit() != .ok) @panic("memory leak"),
-        else => {}
-    };
-
-    const allocator = switch (comptime builtins.mode) {
-        .Debug => gpa.allocator(),
-        else => std.heap.smp_allocator,
-    };
-
-    const option = try flags.parse(allocator) orelse kwim.RunOption {
+pub fn main(init: process.Init) !void {
+    const option = try flags.parse(.{ .gpa = init.gpa, .io = init.io }, init.minimal.args) orelse kwim.RunOption {
         .apply = blk: {
             var path_buffer: [256]u8 = undefined;
             const config_path = try (
-                if (posix.getenv("XDG_CONFIG_HOME")) |config_home|
+                if (init.environ_map.get("XDG_CONFIG_HOME")) |config_home|
                     fmt.bufPrint(&path_buffer, "{s}/kwim/config.zon", .{ config_home })
-                else if (posix.getenv("HOME")) |home|
+                else if (init.environ_map.get("HOME")) |home|
                     fmt.bufPrint(&path_buffer, "{s}/.config/kwim/config.zon", .{ home })
                 else return error.GetConfigHomeFailed
             );
-            break :blk try Config.load(allocator, config_path);
+            break :blk try Config.load(.{ .gpa = init.gpa, .io = init.io }, config_path);
         }
     };
     defer switch (option) {
-        .list => |list_option| if (list_option.pattern) |p| allocator.free(p.str),
-        .apply => |config| Config.free(allocator, config),
+        .list => |list_option| if (list_option.pattern) |p| init.gpa.free(p.str),
+        .apply => |config| Config.free(init.gpa, config),
     };
 
     const display = try wl.Display.connect(null);
@@ -73,7 +58,8 @@ pub fn main() !void {
         const rwm_xkb_config = globals.rwm_xkb_config orelse return error.MissingRiverXkbConfig;
 
         kwim.init(
-            allocator,
+            init.gpa,
+            init.io,
             rwm_input_manager,
             rwm_libinput_config,
             rwm_xkb_config,

@@ -11,12 +11,13 @@ configure input devices independent of window manager.
 
 ## Build
 
-Requires zig 0.15.x.
+Requires zig 0.16.x.
 
 ```sh
 zig build -Doptimize=ReleaseSafe
 ```
 
+- `-Dllvm`: force using LLVM compiler and linker
 - `-Dconfig`: specify config path as compile-time config
 - `-Dkwm-config`: specify kwm config path as compile-time config
 - `-Dbash-completion`: if to install bash completion file (defaults to `true`)

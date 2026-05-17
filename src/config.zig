@@ -1,7 +1,7 @@
 const Self = @This();
 
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const mem = std.mem;
 const zon = std.zon;
 const log = std.log.scoped(.config);
@@ -21,31 +21,33 @@ pub const Config = struct {
 };
 
 
-pub fn load(gpa: mem.Allocator, path: []const u8) !Config {
+pub fn load(ctx: struct {
+    gpa: mem.Allocator,
+    io: Io,
+}, path: []const u8) !Config {
     log.info("loading configuraton from `{s}`", .{ path });
 
-    const file = fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
+    const file = Io.Dir.cwd().openFile(ctx.io, path, .{ .mode = .read_only }) catch |err| {
         log.warn("Failed to open `{s}`: {}", .{ path, err });
         return .{};
     };
-    defer file.close();
+    defer file.close(ctx.io);
 
-    const stat = try file.stat();
+    const size = try file.length(ctx.io);
+    var buffer = try ctx.gpa.alloc(u8, size+1);
+    defer ctx.gpa.free(buffer);
 
-    var buffer = try gpa.alloc(u8, stat.size+1);
-    defer gpa.free(buffer);
-
-    buffer[stat.size] = 0;
+    buffer[size] = 0;
 
     var file_read_buffer: [1024]u8 = undefined;
-    var file_reader = file.reader(&file_read_buffer);
+    var file_reader = file.reader(ctx.io, &file_read_buffer);
     const reader = &file_reader.interface;
-    try reader.readSliceAll(buffer[0..stat.size]);
+    try reader.readSliceAll(buffer[0..size]);
 
-    return try zon.parse.fromSlice(
+    return try zon.parse.fromSliceAlloc(
         Config,
-        gpa,
-        buffer[0..stat.size:0],
+        ctx.gpa,
+        buffer[0..size:0],
         null,
         .{ .ignore_unknown_fields = true },
     );
